@@ -6,15 +6,27 @@ import { formatDuration } from "./utils"
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
-// Read project folder from command line arg
-const projectArg = process.argv[2]
+const args = process.argv.slice(2)
+const projectArg = args[0]
+const modeArg = args[1] ?? "--audio"
+
+const validModes = ["--audio", "--video"] as const
 if (!projectArg) {
   console.error(
-    "❌ Please provide a folder path, e.g.: node lib/index.js projects/30.06.2025 22:20:31"
+    "❌ Please provide a project folder.\nExample:\n  node lib/index.js projects/30.06.2025 22:20:31 [--audio|--video]"
   )
   process.exit(1)
 }
 
+if (!validModes.includes(modeArg as any)) {
+  console.error("❌ Invalid mode. Use --audio or --video")
+  process.exit(1)
+}
+
+const generateAudio = modeArg === "--audio" || modeArg === "--video"
+const generateVideo = modeArg === "--video"
+
+// Resolve paths
 const projectFolder = path.resolve(projectArg)
 const inputDir = path.join(projectFolder, "in")
 const outputDir = path.join(projectFolder, "out")
@@ -23,77 +35,96 @@ const combinedAudio = path.join(outputDir, "combined.mp3")
 const outputVideo = path.join(outputDir, "final_video.mp4")
 const imageBackground = path.join(inputDir, "background.jpg")
 
-// Create ffmpeg concat list
-const mp3Files = fs
-  .readdirSync(inputDir)
-  .filter((file) => file.endsWith(".mp3"))
-  .sort()
+// Validate paths
+if (!fs.existsSync(inputDir)) {
+  console.error(`❌ Input folder does not exist: ${inputDir}`)
+  process.exit(1)
+}
 
-const listFileContent = mp3Files
-  .map((file) => {
-    let fullPath = path.resolve(inputDir, file).replace(/\\/g, "/")
-    fullPath = fullPath.replace(/'/g, `'\\''`)
-    return `file '${fullPath}'`
-  })
-  .join("\n")
+if (!fs.existsSync(outputDir)) {
+  fs.mkdirSync(outputDir, { recursive: true })
+}
 
-fs.writeFileSync(tempListFile, listFileContent)
-
-const combineAudio = (): Promise<void> =>
-  new Promise((resolve, reject) => {
-    ffmpeg()
-      .input(tempListFile)
-      .inputOptions("-f", "concat", "-safe", "0")
-      .outputOptions("-c", "copy")
-      .output(combinedAudio)
-      .on("end", resolve)
-      .on("error", reject)
-      .run()
-  })
-
-const makeVideo = (): Promise<void> =>
-  new Promise((resolve, reject) => {
-    ffmpeg()
-      .input(imageBackground)
-      .loop()
-      .input(combinedAudio)
-      .outputOptions(
-        "-c:v",
-        "libx264",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "192k",
-        "-shortest",
-        "-pix_fmt",
-        "yuv420p"
-      )
-      .size("1280x720")
-      .output(outputVideo)
-      .on("end", resolve)
-      .on("error", reject)
-      .run()
-  })
-
-// Run
-;(async () => {
+// Main
+const run = async (): Promise<void> => {
   const startTime = Date.now()
 
   try {
-    console.log("Combining audio...")
-    await combineAudio()
+    const mp3Files = fs
+      .readdirSync(inputDir)
+      .filter((f) => f.endsWith(".mp3"))
+      .sort()
 
-    console.log("Creating video...")
-    await makeVideo()
+    if (mp3Files.length === 0) {
+      console.error("❌ No MP3 files found in input folder.")
+      process.exit(1)
+    }
 
-    const endTime = Date.now()
-    const elapsed = formatDuration(endTime - startTime)
+    const listFileContent = mp3Files
+      .map((file) => {
+        let fullPath = path.resolve(inputDir, file).replace(/\\/g, "/")
+        fullPath = fullPath.replace(/'/g, `'\\''`)
+        return `file '${fullPath}'`
+      })
+      .join("\n")
 
-    console.log(`✅ Done! Job was done in ${elapsed}. Output: ${outputVideo}`)
+    fs.writeFileSync(tempListFile, listFileContent)
+
+    if (generateAudio) {
+      console.log("🎧 Combining audio...")
+      await new Promise<void>((resolve, reject) => {
+        ffmpeg()
+          .input(tempListFile)
+          .inputOptions("-f", "concat", "-safe", "0")
+          .outputOptions("-c", "copy")
+          .output(combinedAudio)
+          .on("end", resolve)
+          .on("error", reject)
+          .run()
+      })
+    }
+
+    if (generateVideo) {
+      console.log("🎞️ Creating video...")
+      if (!fs.existsSync(imageBackground)) {
+        console.error(`❌ Missing background image: ${imageBackground}`)
+        process.exit(1)
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        ffmpeg()
+          .input(imageBackground)
+          .loop()
+          .input(combinedAudio)
+          .outputOptions(
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-shortest",
+            "-pix_fmt",
+            "yuv420p"
+          )
+          .size("1280x720")
+          .output(outputVideo)
+          .on("end", resolve)
+          .on("error", reject)
+          .run()
+      })
+    }
 
     fs.unlinkSync(tempListFile)
-    fs.unlinkSync(combinedAudio)
+
+    const elapsed = formatDuration(Date.now() - startTime)
+    console.log(`✅ Done in ${elapsed}. Output folder: ${outputDir}`)
   } catch (error) {
     console.error("❌ Error:", error)
   }
-})()
+}
+
+console.log(`📁 Project: ${projectFolder}`)
+console.log(`📦 Mode: ${generateVideo ? "video" : "audio"}`)
+
+run()
