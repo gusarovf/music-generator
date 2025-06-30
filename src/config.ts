@@ -1,3 +1,4 @@
 export const config = {
-  fadeDuration: 0, // seconds
+  fadeDuration: 2,
+  pauseDuration: 1,
 }
