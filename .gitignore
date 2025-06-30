@@ -1,0 +1,9 @@
+/node_modules
+/lib
+/dist
+/mp3s
+
+input.txt
+combined.mp3
+final_video.mp4
+background.jpg
