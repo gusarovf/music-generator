@@ -3,6 +3,7 @@ import fs from "fs"
 import ffmpeg from "fluent-ffmpeg"
 import ffmpegPath from "ffmpeg-static"
 import { formatDuration } from "./utils"
+import { combineAudioWithFade } from "./utils"
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
@@ -71,17 +72,9 @@ const run = async (): Promise<void> => {
     fs.writeFileSync(tempListFile, listFileContent)
 
     if (generateAudio) {
-      console.log("🎧 Combining audio...")
-      await new Promise<void>((resolve, reject) => {
-        ffmpeg()
-          .input(tempListFile)
-          .inputOptions("-f", "concat", "-safe", "0")
-          .outputOptions("-c", "copy")
-          .output(combinedAudio)
-          .on("end", resolve)
-          .on("error", reject)
-          .run()
-      })
+      console.log("🎧 Combining audio with fades...")
+
+      await combineAudioWithFade(mp3Files, inputDir, combinedAudio)
     }
 
     if (generateVideo) {
