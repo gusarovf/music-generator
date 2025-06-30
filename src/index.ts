@@ -2,38 +2,45 @@ import path from "path"
 import fs from "fs"
 import ffmpeg from "fluent-ffmpeg"
 import ffmpegPath from "ffmpeg-static"
+import { formatDuration } from "./utils"
 
-// Explicitly tell fluent-ffmpeg to use the local ffmpeg binary
 ffmpeg.setFfmpegPath(ffmpegPath)
 
-// Always work from the project root
-const projectRoot = path.resolve(__dirname, "..")
+// Read project folder from command line arg
+const projectArg = process.argv[2]
+if (!projectArg) {
+  console.error(
+    "❌ Please provide a folder path, e.g.: node lib/index.js projects/30.06.2025 22:20:31"
+  )
+  process.exit(1)
+}
 
-const audioDir = path.join(projectRoot, "mp3s")
-const tempListFile = path.join(projectRoot, "input.txt")
-const combinedAudio = path.join(projectRoot, "combined.mp3")
-const outputVideo = path.join(projectRoot, "final_video.mp4")
-const imageBackground = path.join(projectRoot, "background.jpg")
+const projectFolder = path.resolve(projectArg)
+const inputDir = path.join(projectFolder, "in")
+const outputDir = path.join(projectFolder, "out")
+const tempListFile = path.join(projectFolder, "input.txt")
+const combinedAudio = path.join(outputDir, "combined.mp3")
+const outputVideo = path.join(outputDir, "final_video.mp4")
+const imageBackground = path.join(inputDir, "background.jpg")
 
-// Step 1: Create ffmpeg input list file
+// Create ffmpeg concat list
 const mp3Files = fs
-  .readdirSync(audioDir)
+  .readdirSync(inputDir)
   .filter((file) => file.endsWith(".mp3"))
   .sort()
 
 const listFileContent = mp3Files
   .map((file) => {
-    let fullPath = path.resolve(audioDir, file).replace(/\\/g, "/")
-    fullPath = fullPath.replace(/'/g, `'\\''`) // escape single quotes
+    let fullPath = path.resolve(inputDir, file).replace(/\\/g, "/")
+    fullPath = fullPath.replace(/'/g, `'\\''`)
     return `file '${fullPath}'`
   })
   .join("\n")
 
 fs.writeFileSync(tempListFile, listFileContent)
 
-// Step 2: Combine MP3s into one audio track
-const combineAudio = () =>
-  new Promise<void>((resolve, reject) => {
+const combineAudio = (): Promise<void> =>
+  new Promise((resolve, reject) => {
     ffmpeg()
       .input(tempListFile)
       .inputOptions("-f", "concat", "-safe", "0")
@@ -44,12 +51,11 @@ const combineAudio = () =>
       .run()
   })
 
-// Step 3: Create video using a background image and the combined audio
-const makeVideo = () =>
-  new Promise<void>((resolve, reject) => {
+const makeVideo = (): Promise<void> =>
+  new Promise((resolve, reject) => {
     ffmpeg()
       .input(imageBackground)
-      .loop() // loop the image to match audio
+      .loop()
       .input(combinedAudio)
       .outputOptions(
         "-c:v",
@@ -69,8 +75,10 @@ const makeVideo = () =>
       .run()
   })
 
-// Main
+// Run
 ;(async () => {
+  const startTime = Date.now()
+
   try {
     console.log("Combining audio...")
     await combineAudio()
@@ -78,8 +86,13 @@ const makeVideo = () =>
     console.log("Creating video...")
     await makeVideo()
 
-    console.log(`✅ Done! Output: ${outputVideo}`)
-    fs.unlinkSync(tempListFile) // cleanup
+    const endTime = Date.now()
+    const elapsed = formatDuration(endTime - startTime)
+
+    console.log(`✅ Done! Job was done in ${elapsed}. Output: ${outputVideo}`)
+
+    fs.unlinkSync(tempListFile)
+    fs.unlinkSync(combinedAudio)
   } catch (error) {
     console.error("❌ Error:", error)
   }

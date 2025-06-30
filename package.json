@@ -4,10 +4,10 @@
   "description": "Combine MP3 files into a YouTube-ready video using FFmpeg and TypeScript",
   "main": "lib/index.js",
   "scripts": {
-    "start": "tsc --watch",
     "build": "tsc",
-    "run": "node lib/index.js",
-    "prepare": "mkdir -p lib && cp background.jpg lib/"
+    "start": "tsc --watch",
+    "new-folder": "ts-node lib/new-folder.js",
+    "make-video": "node lib/index.js"
   },
   "author": "Fedor Gusarov",
   "license": "MIT",
