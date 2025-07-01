@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "tsc --watch",
-    "new-folder": "ts-node lib/new-folder.js",
+    "new-project": "node lib/new-project.js",
     "make-video": "node lib/index.js"
   },
   "author": "Fedor Gusarov",

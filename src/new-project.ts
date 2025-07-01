@@ -3,7 +3,7 @@ import path from "path"
 import { getTimestampFolderName } from "./utils"
 
 const createNewProjectFolder = (): void => {
-  const baseProjects = path.resolve(__dirname, '..', 'projects');
+  const baseProjects = path.resolve(__dirname, "..", "projects")
   const folderName = getTimestampFolderName()
   const root = path.join(baseProjects, folderName)
   const inputDir = path.join(root, "in")
