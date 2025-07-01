@@ -15,7 +15,7 @@ ffmpeg.setFfmpegPath(ffmpegPath)
 
 const args = process.argv.slice(2)
 const projectArg = args[0]
-const modeArg = args[1] ?? "--audio"
+const modeArg = args[1] == "--audio" ? "--audio" : "--video"
 
 const validModes = ["--audio", "--video"] as const
 if (!projectArg) {

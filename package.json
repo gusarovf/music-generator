@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "tsc --watch",
     "new-project": "node lib/new-project.js",
-    "make-video": "node lib/index.js"
+    "make": "node lib/index.js"
   },
   "author": "Fedor Gusarov",
   "license": "MIT",

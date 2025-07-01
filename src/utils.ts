@@ -266,11 +266,6 @@ export const combineAudioWithPause = async (
       .outputOptions("-map", "[outa]")
       .output(outputPath)
       .on("start", (cmd) => console.log("🚀 FFmpeg started:", cmd))
-      .on("progress", (progress) => {
-        if (progress.timemark) {
-          console.log(`⏱ Progress: ${progress.timemark}`)
-        }
-      })
       .on("end", () => {
         console.log(`✅ Silence-concat complete → ${outputPath}`)
         resolve({ durations, startTimes })
