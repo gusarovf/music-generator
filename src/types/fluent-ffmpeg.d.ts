@@ -9,14 +9,17 @@ declare module "fluent-ffmpeg" {
     size: (size: string) => FfmpegCommand
     loop: () => FfmpegCommand
     output: (path: string) => FfmpegCommand
-    on: (event: "end" | "error", handler: (arg?: any) => void) => FfmpegCommand
+    on: (
+      event: "start" | "progress" | "end" | "error",
+      handler: (arg?: any) => void
+    ) => FfmpegCommand
     run: () => void
   }
 
   interface FfmpegModule {
     (input?: string | stream.Readable): FfmpegCommand
     setFfmpegPath: (path: string) => void
-    setFfprobePath: (path: string) => void // ✅ Add this
+    setFfprobePath: (path: string) => void
     ffprobe: (
       filePath: string,
       callback: (err: Error | null, metadata: any) => void
