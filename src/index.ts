@@ -41,6 +41,9 @@ const tempListFile = path.join(projectFolder, "input.txt")
 const combinedAudio = path.join(outputDir, "combined.mp3")
 const outputVideo = path.join(outputDir, "final_video.mp4")
 
+const namesPath = path.join(inputDir, "track-names.txt")
+const hasCustomNames = fs.existsSync(namesPath)
+
 // Validate paths
 if (!fs.existsSync(inputDir)) {
   console.error(`❌ Input folder does not exist: ${inputDir}`)
@@ -92,7 +95,25 @@ const run = async (): Promise<void> => {
         config.pauseDuration
       )
 
-      const trackTitles = mp3Files.map((f) => path.parse(f).name)
+      let trackTitles: string[] = mp3Files.map((f) => path.parse(f).name)
+
+      if (hasCustomNames) {
+        const raw = fs
+          .readFileSync(namesPath, "utf-8")
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line !== "")
+
+        if (raw.length >= mp3Files.length) {
+          trackTitles = raw.slice(0, mp3Files.length)
+          console.log(`✏️  Using custom track names from track-names.txt`)
+        } else {
+          console.warn(
+            `⚠️  track-names.txt contains fewer names (${raw.length}) than MP3 files (${mp3Files.length}). Using default names.`
+          )
+        }
+      }
+
       writeTimelineFile(outputDir, trackTitles, startTimes)
     }
 
