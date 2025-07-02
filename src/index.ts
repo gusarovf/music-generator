@@ -40,7 +40,6 @@ const outputDir = path.join(projectFolder, "out")
 const tempListFile = path.join(projectFolder, "input.txt")
 const combinedAudio = path.join(outputDir, "combined.mp3")
 const outputVideo = path.join(outputDir, "final_video.mp4")
-const imageBackground = path.join(inputDir, "background.jpg")
 
 // Validate paths
 if (!fs.existsSync(inputDir)) {
@@ -98,16 +97,31 @@ const run = async (): Promise<void> => {
     }
 
     if (generateVideo) {
-      console.log("🎞️ Creating video...")
-      if (!fs.existsSync(imageBackground)) {
-        console.error(`❌ Missing background image: ${imageBackground}`)
+      // Find background file
+      const backgroundFile = fs
+        .readdirSync(inputDir)
+        .find((file) => file.match(/\.(jpg|jpeg|png|mp4|mov|mkv)$/i))
+
+      if (!backgroundFile) {
+        console.error("❌ No background image or video found in input folder.")
         process.exit(1)
       }
 
+      const backgroundPath = path.join(inputDir, backgroundFile)
+      const isImage = backgroundFile.match(/\.(jpg|jpeg|png)$/i)
+
+      console.log("🎞️ Creating video...")
+
       await new Promise<void>((resolve, reject) => {
-        ffmpeg()
-          .input(imageBackground)
-          .loop()
+        const cmd = ffmpeg()
+
+        if (isImage) {
+          cmd.input(backgroundPath).loop() // Static image looped
+        } else {
+          cmd.input(backgroundPath).inputOptions("-stream_loop", "-1") // Looped video
+        }
+
+        cmd
           .input(combinedAudio)
           .outputOptions(
             "-c:v",
