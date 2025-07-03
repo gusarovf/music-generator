@@ -51,7 +51,11 @@ export const generateVideo = async (
     const cmd = ffmpeg().input(backgroundInput)
 
     if (useLoopFlag) {
-      cmd.loop()
+      if (imageFile) {
+        cmd.loop().inputOptions("-t", audioDuration.toString())
+      } else {
+        cmd.inputOptions("-stream_loop", "-1")
+      }
     }
 
     cmd
