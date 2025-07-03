@@ -23,8 +23,11 @@ export const resolveProjectPaths = (projectArg: string): ProjectPaths => {
   const tempListFile = path.join(projectFolder, "input.txt")
   const combinedAudio = path.join(outputDir, "combined.mp3")
   const outputVideo = path.join(outputDir, "final_video.mp4")
-  const namesPath = path.join(inputDir, "track-names.txt")
-  const hasCustomNames = fs.existsSync(namesPath)
+  const namesPath = path.join(audioDir, "track-names.txt")
+
+  const hasCustomNames =
+    fs.existsSync(namesPath) &&
+    fs.readFileSync(namesPath, "utf-8").trim().length > 0
 
   return {
     projectFolder,

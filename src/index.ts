@@ -95,18 +95,18 @@ const run = async (): Promise<void> => {
       let trackTitles: string[] = mp3Files.map((f) => path.parse(f).name)
 
       if (hasCustomNames) {
-        const raw = fs
+        const rawNames = fs
           .readFileSync(namesPath, "utf-8")
           .split("\n")
           .map((line) => line.trim())
-          .filter((line) => line !== "")
+          .filter(Boolean)
 
-        if (raw.length >= mp3Files.length) {
-          trackTitles = raw.slice(0, mp3Files.length)
+        if (rawNames.length >= mp3Files.length) {
+          trackTitles = rawNames.slice(0, mp3Files.length)
           console.log(`✏️  Using custom track names from track-names.txt`)
         } else {
           console.warn(
-            `⚠️  track-names.txt contains fewer names (${raw.length}) than MP3 files (${mp3Files.length}). Using default names.`
+            `⚠️  track-names.txt contains fewer names (${rawNames.length}) than MP3 files (${mp3Files.length}). Using default names.`
           )
         }
       }
