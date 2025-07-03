@@ -2,14 +2,9 @@ import path from "path"
 import fs from "fs"
 import ffmpeg from "fluent-ffmpeg"
 import ffmpegPath from "ffmpeg-static"
-import {
-  combineAudioWithCrossfade,
-  combineAudioWithPause,
-  formatDuration,
-  writeTimelineFile,
-} from "./utils"
-import { combineAudioWithFade } from "./utils"
+import { formatDuration, writeTimelineFile } from "./utils"
 import { config } from "./config"
+import { combineAudioWithPause } from "./generation/audio/combineAudioWithPause"
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
@@ -81,12 +76,6 @@ const run = async (): Promise<void> => {
 
     if (generateAudio) {
       console.log("🎧 Combining audio with fades...")
-
-      // const { durations, startTimes } = await combineAudioWithCrossfade(
-      //   mp3Files,
-      //   inputDir,
-      //   combinedAudio
-      // )
 
       const { durations, startTimes } = await combineAudioWithPause(
         mp3Files,
