@@ -116,7 +116,47 @@ const run = async (): Promise<void> => {
 
     if (generateVideoFlag) {
       console.log("🎞️ Creating video...")
-      await generateVideo(backgroundDir, outputDir, combinedAudio, outputVideo)
+      // Find background file
+      const backgroundFile = fs
+        .readdirSync(backgroundDir)
+        .find((file) => file.match(/\.(jpg|jpeg|png|mp4|mov|mkv)$/i))
+
+      if (!backgroundFile) {
+        console.error("❌ No background image or video found in input folder.")
+        process.exit(1)
+      }
+
+      const backgroundPath = path.join(backgroundDir, backgroundFile)
+      const isImage = backgroundFile.match(/\.(jpg|jpeg|png)$/i)
+
+      await new Promise<void>((resolve, reject) => {
+        const cmd = ffmpeg()
+
+        if (isImage) {
+          cmd.input(backgroundPath).loop() // Static image looped
+        } else {
+          cmd.input(backgroundPath).inputOptions("-stream_loop", "-1") // Looped video
+        }
+
+        cmd
+          .input(combinedAudio)
+          .outputOptions(
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-shortest",
+            "-pix_fmt",
+            "yuv420p"
+          )
+          .size("1280x720")
+          .output(outputVideo)
+          .on("end", resolve)
+          .on("error", reject)
+          .run()
+      })
     }
 
     if (fs.existsSync(tempListFile)) {
