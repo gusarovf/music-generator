@@ -7,11 +7,15 @@ const createNewProjectFolder = (): void => {
   const folderName = getTimestampFolderName()
   const root = path.join(baseProjects, folderName)
   const inputDir = path.join(root, "in")
+  const backgroundDir = path.join(inputDir, "background")
+  const audioDir = path.join(inputDir, "audio")
   const outputDir = path.join(root, "out")
 
   if (!fs.existsSync(baseProjects)) fs.mkdirSync(baseProjects)
   fs.mkdirSync(root)
   fs.mkdirSync(inputDir)
+  fs.mkdirSync(backgroundDir)
+  fs.mkdirSync(audioDir)
   fs.mkdirSync(outputDir)
 
   console.log(

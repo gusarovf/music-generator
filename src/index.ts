@@ -6,14 +6,16 @@ import { formatDuration, writeTimelineFile } from "./utils"
 import { config } from "./config"
 import { combineAudioWithPause } from "./generation/audio/combineAudioWithPause"
 import { generateVideo } from "./generation/video/generateVideo"
+import { resolveProjectPaths } from "./paths"
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
 const args = process.argv.slice(2)
 const projectArg = args[0]
-const modeArg = args[1] == "--audio" ? "--audio" : "--video"
+const modeArg = args[1] === "--audio" ? "--audio" : "--video"
 
 const validModes = ["--audio", "--video"] as const
+
 if (!projectArg) {
   console.error(
     "❌ Please provide a project folder.\nExample:\n  node lib/index.js projects/30.06.2025 22:20:31 [--audio|--video]"
@@ -27,47 +29,52 @@ if (!validModes.includes(modeArg as any)) {
 }
 
 const generateAudio = modeArg === "--audio" || modeArg === "--video"
-const shouldGenerateVideo = modeArg === "--video"
+const generateVideoFlag = modeArg === "--video"
 
-// Resolve paths
-const projectFolder = path.resolve(projectArg)
-const inputDir = path.join(projectFolder, "in")
-const outputDir = path.join(projectFolder, "out")
-const tempListFile = path.join(projectFolder, "input.txt")
-const combinedAudio = path.join(outputDir, "combined.mp3")
-const outputVideo = path.join(outputDir, "final_video.mp4")
+// Resolve all paths
+const {
+  projectFolder,
+  inputDir,
+  audioDir,
+  backgroundDir,
+  outputDir,
+  tempListFile,
+  combinedAudio,
+  outputVideo,
+  namesPath,
+  hasCustomNames,
+} = resolveProjectPaths(projectArg)
 
-const namesPath = path.join(inputDir, "track-names.txt")
-const hasCustomNames = fs.existsSync(namesPath)
-
-// Validate paths
-if (!fs.existsSync(inputDir)) {
-  console.error(`❌ Input folder does not exist: ${inputDir}`)
+// Validate required folders
+if (!fs.existsSync(audioDir)) {
+  console.error(`❌ Audio folder does not exist: ${audioDir}`)
   process.exit(1)
 }
-
+if (!fs.existsSync(backgroundDir)) {
+  console.error(`❌ Background folder does not exist: ${backgroundDir}`)
+  process.exit(1)
+}
 if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true })
 }
 
-// Main
 const run = async (): Promise<void> => {
   const startTime = Date.now()
 
   try {
     const mp3Files = fs
-      .readdirSync(inputDir)
+      .readdirSync(audioDir)
       .filter((f) => f.endsWith(".mp3"))
       .sort()
 
     if (mp3Files.length === 0) {
-      console.error("❌ No MP3 files found in input folder.")
+      console.error("❌ No MP3 files found in audio folder.")
       process.exit(1)
     }
 
     const listFileContent = mp3Files
       .map((file) => {
-        let fullPath = path.resolve(inputDir, file).replace(/\\/g, "/")
+        let fullPath = path.resolve(audioDir, file).replace(/\\/g, "/")
         fullPath = fullPath.replace(/'/g, `'\\''`)
         return `file '${fullPath}'`
       })
@@ -76,11 +83,11 @@ const run = async (): Promise<void> => {
     fs.writeFileSync(tempListFile, listFileContent)
 
     if (generateAudio) {
-      console.log("🎧 Combining audio with fades...")
+      console.log("🎧 Combining audio with pauses...")
 
       const { durations, startTimes } = await combineAudioWithPause(
         mp3Files,
-        inputDir,
+        audioDir,
         combinedAudio,
         config.pauseDuration
       )
@@ -107,12 +114,14 @@ const run = async (): Promise<void> => {
       writeTimelineFile(outputDir, trackTitles, startTimes)
     }
 
-    if (shouldGenerateVideo) {
+    if (generateVideoFlag) {
       console.log("🎞️ Creating video...")
-      await generateVideo(inputDir, outputDir, combinedAudio, outputVideo)
+      await generateVideo(backgroundDir, outputDir, combinedAudio, outputVideo)
     }
 
-    fs.unlinkSync(tempListFile)
+    if (fs.existsSync(tempListFile)) {
+      fs.unlinkSync(tempListFile)
+    }
 
     const elapsed = formatDuration(Date.now() - startTime)
     console.log(`✅ Done in ${elapsed}. Output folder: ${outputDir}`)
@@ -122,6 +131,6 @@ const run = async (): Promise<void> => {
 }
 
 console.log(`📁 Project: ${projectFolder}`)
-console.log(`📦 Mode: ${shouldGenerateVideo ? "video" : "audio"}`)
+console.log(`📦 Mode: ${generateVideoFlag ? "video" : "audio"}`)
 
 run()
