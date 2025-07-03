@@ -5,6 +5,7 @@ import ffmpegPath from "ffmpeg-static"
 import { formatDuration, writeTimelineFile } from "./utils"
 import { config } from "./config"
 import { combineAudioWithPause } from "./generation/audio/combineAudioWithPause"
+import { generateVideo } from "./generation/video/generateVideo"
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
@@ -26,7 +27,7 @@ if (!validModes.includes(modeArg as any)) {
 }
 
 const generateAudio = modeArg === "--audio" || modeArg === "--video"
-const generateVideo = modeArg === "--video"
+const shouldGenerateVideo = modeArg === "--video"
 
 // Resolve paths
 const projectFolder = path.resolve(projectArg)
@@ -106,50 +107,9 @@ const run = async (): Promise<void> => {
       writeTimelineFile(outputDir, trackTitles, startTimes)
     }
 
-    if (generateVideo) {
-      // Find background file
-      const backgroundFile = fs
-        .readdirSync(inputDir)
-        .find((file) => file.match(/\.(jpg|jpeg|png|mp4|mov|mkv)$/i))
-
-      if (!backgroundFile) {
-        console.error("❌ No background image or video found in input folder.")
-        process.exit(1)
-      }
-
-      const backgroundPath = path.join(inputDir, backgroundFile)
-      const isImage = backgroundFile.match(/\.(jpg|jpeg|png)$/i)
-
+    if (shouldGenerateVideo) {
       console.log("🎞️ Creating video...")
-
-      await new Promise<void>((resolve, reject) => {
-        const cmd = ffmpeg()
-
-        if (isImage) {
-          cmd.input(backgroundPath).loop() // Static image looped
-        } else {
-          cmd.input(backgroundPath).inputOptions("-stream_loop", "-1") // Looped video
-        }
-
-        cmd
-          .input(combinedAudio)
-          .outputOptions(
-            "-c:v",
-            "libx264",
-            "-c:a",
-            "aac",
-            "-b:a",
-            "192k",
-            "-shortest",
-            "-pix_fmt",
-            "yuv420p"
-          )
-          .size("1280x720")
-          .output(outputVideo)
-          .on("end", resolve)
-          .on("error", reject)
-          .run()
-      })
+      await generateVideo(inputDir, outputDir, combinedAudio, outputVideo)
     }
 
     fs.unlinkSync(tempListFile)
@@ -162,6 +122,6 @@ const run = async (): Promise<void> => {
 }
 
 console.log(`📁 Project: ${projectFolder}`)
-console.log(`📦 Mode: ${generateVideo ? "video" : "audio"}`)
+console.log(`📦 Mode: ${shouldGenerateVideo ? "video" : "audio"}`)
 
 run()
