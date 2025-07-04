@@ -13,7 +13,7 @@ const createNewProjectFolder = (): void => {
   const audioDir = path.join(inputDir, "audio")
   const backgroundDir = path.join(inputDir, "background")
   const outputDir = path.join(root, "out")
-  const trackNamesFile = path.join(inputDir, "track-names.txt")
+  const trackNamesFile = path.join(audioDir, "track-names.txt")
 
   if (!fs.existsSync(baseProjects)) fs.mkdirSync(baseProjects)
   fs.mkdirSync(root)
