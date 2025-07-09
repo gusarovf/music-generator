@@ -1,7 +1,7 @@
 import ffmpeg from "fluent-ffmpeg"
 import path from "path"
 import { config } from "../../config"
-import { getAudioDuration } from ".";
+import { getAudioDuration } from "."
 
 export const combineAudioWithPause = async (
   mp3Files: string[],
@@ -56,7 +56,14 @@ export const combineAudioWithPause = async (
   return new Promise((resolve, reject) => {
     command
       .complexFilter([concatFilter])
-      .outputOptions("-map", "[outa]")
+      .outputOptions(
+        "-map",
+        "[outa]",
+        "-c:a",
+        "aac",
+        "-q:a",
+        "0" // highest quality VBR
+      )
       .output(outputPath)
       .on("start", (cmd) => console.log("🚀 FFmpeg started:", cmd))
       .on("end", () => {

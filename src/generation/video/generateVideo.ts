@@ -65,8 +65,8 @@ export const generateVideo = async (
         "libx264",
         "-c:a",
         "aac",
-        "-b:a",
-        "192k",
+        "-q:a",
+        "0",
         "-shortest",
         "-pix_fmt",
         "yuv420p"
