@@ -4,7 +4,7 @@ import { config } from "../../config"
 import { getAudioDuration } from "."
 
 export const combineAudioWithPause = async (
-  mp3Files: string[],
+  audioFiles: string[],
   inputDir: string,
   outputPath: string,
   pauseDuration: number
@@ -19,27 +19,27 @@ export const combineAudioWithPause = async (
 
   console.log("🎧 Preparing audio inputs with pauses...")
 
-  for (let i = 0; i < mp3Files.length; i++) {
-    const mp3Path = path.join(inputDir, mp3Files[i])
-    const duration = await getAudioDuration(mp3Path)
+  for (let i = 0; i < audioFiles.length; i++) {
+    const audioPath = path.join(inputDir, audioFiles[i])
+    const duration = await getAudioDuration(audioPath)
 
     durations.push(duration)
     startTimes.push(currentStart)
 
     console.log(
-      `  • ${mp3Files[i]} — ${duration.toFixed(
+      `  • ${audioFiles[i]} — ${duration.toFixed(
         3
       )}s (start at ${currentStart.toFixed(3)}s)`
     )
 
-    // Add MP3 file
-    command.input(mp3Path)
+    // Add audio file
+    command.input(audioPath)
     inputLabels.push(`[${inputIndex++}:a]`)
 
     currentStart += duration
 
     // Add silence between tracks
-    if (i < mp3Files.length - 1) {
+    if (i < audioFiles.length - 1) {
       console.log(`    ⏸ Adding ${pauseDuration}s silence after this track`)
       command.input("anullsrc=r=44100:cl=stereo")
       command.inputOptions("-f", "lavfi", "-t", pauseDuration.toString())
@@ -56,14 +56,7 @@ export const combineAudioWithPause = async (
   return new Promise((resolve, reject) => {
     command
       .complexFilter([concatFilter])
-      .outputOptions(
-        "-map",
-        "[outa]",
-        "-c:a",
-        "aac",
-        "-q:a",
-        "0" // highest quality VBR
-      )
+      .outputOptions("-map", "[outa]", "-c:a", "libmp3lame", "-q:a", "0")
       .output(outputPath)
       .on("start", (cmd) => console.log("🚀 FFmpeg started:", cmd))
       .on("end", () => {

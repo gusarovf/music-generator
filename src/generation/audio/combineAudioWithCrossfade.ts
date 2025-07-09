@@ -5,12 +5,12 @@ import { getAudioDuration } from "."
 import fs from "fs"
 
 export const combineAudioWithCrossfade = async (
-  mp3Files: string[],
+  audioFiles: string[],
   inputDir: string,
   outputPath: string
 ): Promise<{ durations: number[]; startTimes: number[] }> => {
   const fade = config.fadeDuration
-  if (mp3Files.length < 2) {
+  if (audioFiles.length < 2) {
     throw new Error("At least 2 audio files are required for crossfading.")
   }
 
@@ -23,8 +23,8 @@ export const combineAudioWithCrossfade = async (
   const startTimes: number[] = []
 
   console.log("🎵 Gathering durations...")
-  for (let i = 0; i < mp3Files.length; i++) {
-    const fullPath = path.join(inputDir, mp3Files[i])
+  for (let i = 0; i < audioFiles.length; i++) {
+    const fullPath = path.join(inputDir, audioFiles[i])
     const duration = await getAudioDuration(fullPath)
     durations.push(duration)
 
@@ -36,7 +36,7 @@ export const combineAudioWithCrossfade = async (
       startTimes.push(prevStart + prevDur - fade)
     }
 
-    console.log(`  • ${mp3Files[i]} — ${duration.toFixed(3)}s`)
+    console.log(`  • ${audioFiles[i]} — ${duration.toFixed(3)}s`)
   }
 
   // Step 1: Crossfade first two
@@ -45,8 +45,8 @@ export const combineAudioWithCrossfade = async (
 
   await new Promise((resolve, reject) => {
     ffmpeg()
-      .input(path.join(inputDir, mp3Files[0]))
-      .input(path.join(inputDir, mp3Files[1]))
+      .input(path.join(inputDir, audioFiles[0]))
+      .input(path.join(inputDir, audioFiles[1]))
       .complexFilter([`[0:a][1:a]acrossfade=d=${fade}:c1=tri:c2=tri[outa]`])
       .outputOptions("-map", "[outa]")
       .output(previous)
@@ -56,14 +56,14 @@ export const combineAudioWithCrossfade = async (
   })
 
   // Step 2+: Crossfade previous output with next track
-  for (let i = 2; i < mp3Files.length; i++) {
+  for (let i = 2; i < audioFiles.length; i++) {
     const next = getTempFile()
     tempFiles.push(next)
 
     await new Promise((resolve, reject) => {
       ffmpeg()
         .input(previous)
-        .input(path.join(inputDir, mp3Files[i]))
+        .input(path.join(inputDir, audioFiles[i]))
         .complexFilter([`[0:a][1:a]acrossfade=d=${fade}:c1=tri:c2=tri[outa]`])
         .outputOptions("-map", "[outa]")
         .output(next)

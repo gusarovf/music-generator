@@ -62,17 +62,17 @@ const run = async (): Promise<void> => {
   const startTime = Date.now()
 
   try {
-    const mp3Files = fs
+    const audioFiles = fs
       .readdirSync(audioDir)
-      .filter((f) => f.endsWith(".mp3"))
+      .filter((f) => f.endsWith(".mp3") || f.endsWith(".m4a"))
       .sort()
 
-    if (mp3Files.length === 0) {
-      console.error("❌ No MP3 files found in audio folder.")
+    if (audioFiles.length === 0) {
+      console.error("❌ No audio files found in audio folder.")
       process.exit(1)
     }
 
-    const listFileContent = mp3Files
+    const listFileContent = audioFiles
       .map((file) => {
         let fullPath = path.resolve(audioDir, file).replace(/\\/g, "/")
         fullPath = fullPath.replace(/'/g, `'\\''`)
@@ -86,13 +86,13 @@ const run = async (): Promise<void> => {
       console.log("🎧 Combining audio with pauses...")
 
       const { durations, startTimes } = await combineAudioWithPause(
-        mp3Files,
+        audioFiles,
         audioDir,
         combinedAudio,
         config.pauseDuration
       )
 
-      let trackTitles: string[] = mp3Files.map((f) => path.parse(f).name)
+      let trackTitles: string[] = audioFiles.map((f) => path.parse(f).name)
 
       if (hasCustomNames) {
         const rawNames = fs
@@ -101,12 +101,12 @@ const run = async (): Promise<void> => {
           .map((line) => line.trim())
           .filter(Boolean)
 
-        if (rawNames.length >= mp3Files.length) {
-          trackTitles = rawNames.slice(0, mp3Files.length)
+        if (rawNames.length >= audioFiles.length) {
+          trackTitles = rawNames.slice(0, audioFiles.length)
           console.log(`✏️  Using custom track names from track-names.txt`)
         } else {
           console.warn(
-            `⚠️  track-names.txt contains fewer names (${rawNames.length}) than MP3 files (${mp3Files.length}). Using default names.`
+            `⚠️  track-names.txt contains fewer names (${rawNames.length}) than audio files (${audioFiles.length}). Using default names.`
           )
         }
       }

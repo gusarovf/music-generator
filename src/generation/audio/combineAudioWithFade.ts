@@ -4,7 +4,7 @@ import { config } from "../../config"
 import { getAudioDuration } from "."
 
 export const combineAudioWithFade = async (
-  mp3Files: string[],
+  audioFiles: string[],
   inputDir: string,
   outputPath: string
 ): Promise<number[]> => {
@@ -14,7 +14,7 @@ export const combineAudioWithFade = async (
   const durations: number[] = []
 
   console.log("🎵 Gathering durations...")
-  for (const file of mp3Files) {
+  for (const file of audioFiles) {
     const fullPath = path.join(inputDir, file)
     command.input(fullPath)
     const duration = await getAudioDuration(fullPath)
@@ -25,7 +25,7 @@ export const combineAudioWithFade = async (
   const filterParts: string[] = []
   const fadeInputs: string[] = []
 
-  mp3Files.forEach((_, index) => {
+  audioFiles.forEach((_, index) => {
     const inputLabel = `[${index}:a]`
     const label = `a${index}`
     fadeInputs.push(`[${label}]`)
@@ -37,7 +37,7 @@ export const combineAudioWithFade = async (
       filters.push(`afade=t=in:st=0:d=${fade}`)
     }
 
-    if (index !== mp3Files.length - 1 && duration > fade) {
+    if (index !== audioFiles.length - 1 && duration > fade) {
       const safeStart = Math.max(0, duration - fade).toFixed(3)
       filters.push(`afade=t=out:st=${safeStart}:d=${fade}`)
     }
@@ -51,7 +51,7 @@ export const combineAudioWithFade = async (
 
   // Final concat
   filterParts.push(
-    `${fadeInputs.join("")}concat=n=${mp3Files.length}:v=0:a=1[outa]`
+    `${fadeInputs.join("")}concat=n=${audioFiles.length}:v=0:a=1[outa]`
   )
 
   console.log("🔍 Final filter graph:\n", filterParts.join(",\n"))
